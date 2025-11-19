@@ -10,6 +10,7 @@ export default Joi.object({
     DB_PORT: Joi.number().port().default(5432),
     DB_USER: Joi.string().required(),
     DB_PASSWORD: Joi.string().required(),
+    JWT_SECRET: Joi.string().required(),
     // PROFILE_API_KEY: Joi.string().required(),
     // MAIL_HOST: Joi.string().required()
 })

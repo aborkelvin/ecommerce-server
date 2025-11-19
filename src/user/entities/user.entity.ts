@@ -3,6 +3,7 @@ import { eUserRole } from "../enums/userRole.enum";
 import { Product } from "src/product/entities/product.entity";
 import { Cart } from "src/cart/entities/cart.entity";
 import { Order } from "src/order/entities/order.entity";
+import { Exclude } from "class-transformer";
 
 @Entity()
 export class User{
@@ -24,6 +25,7 @@ export class User{
     @Column({
         nullable: false
     })
+    @Exclude()
     password: string;
 
     @Column({
