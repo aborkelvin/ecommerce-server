@@ -14,6 +14,7 @@ export class TrackingDetail {
         type: 'enum',
         enum: eTrackingStatus,
         nullable: false,
+        default: eTrackingStatus.PROCESSING
     })
     status: eTrackingStatus; 
 

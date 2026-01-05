@@ -1,25 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Query } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import type { Request } from 'express';
+import { User } from 'src/user/entities/user.entity';
 
-@Controller('order')
+@Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.orderService.create(createOrderDto);
+  @Post('/create')
+  async createOrder(
+    @Body() createOrderDto: CreateOrderDto,
+    @Req() req: Request
+  ) {
+    return await this.orderService.createOrder(createOrderDto, req.user as User);
   }
+
+ 
 
   @Get()
-  findAll() {
-    return this.orderService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orderService.findOne(+id);
+  findAll(
+    @Req() req: Request
+  ) {
+    return this.orderService.findAll( req.user as User);
   }
 
   @Patch(':id')

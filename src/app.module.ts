@@ -18,6 +18,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import environmentValidation from './config/environment.validation';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/guards/auth.guard';
+import { UploadsModule } from './uploads/uploads.module';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { CheckoutModule } from './checkout/checkout.module';
 
 // Define the env file path based on NODE_ENV, if it's set to development, use .env
 const ENV = process.env.NODE_ENV;
@@ -54,7 +57,9 @@ const ENV = process.env.NODE_ENV;
         port: configService.get('database.port'),
         database: configService.get('database.name'),
       })
-    })
+    }),
+    UploadsModule,
+    CheckoutModule
 
   ],
   controllers: [AppController],
@@ -63,6 +68,10 @@ const ENV = process.env.NODE_ENV;
     {
       provide: APP_GUARD,
       useClass: AuthGuard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard
     }
   ],
 })

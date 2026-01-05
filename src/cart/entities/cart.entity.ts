@@ -1,7 +1,8 @@
 import { User } from "src/user/entities/user.entity";
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { eCartStatus } from "../enums/cartStatus.enum";
 import { CartItem } from "src/cart-item/entities/cart-item.entity";
+import { Order } from "src/order/entities/order.entity";
 
 @Entity()
 export class Cart {
@@ -12,7 +13,9 @@ export class Cart {
     @ManyToOne(() => User, (user) => user.carts)
     owner: User
 
-    @OneToMany(() => CartItem, (cartItem) => cartItem.cart)
+    @OneToMany(() => CartItem, (cartItem) => cartItem.cart, {
+        eager: true
+    })
     cartItems?: CartItem[]
     
     @Column({
@@ -22,6 +25,12 @@ export class Cart {
         nullable: false,
     })
     status: eCartStatus;
+
+    @OneToOne(() => Order, (order) => order.cart, {
+    nullable: true,
+    })
+    order?: Order;
+
 
     @CreateDateColumn()
     createDate: Date

@@ -33,7 +33,7 @@ export class Product {
         default: 0,
         type: "int"
     })
-    quantityInStock: string | number
+    quantityInStock: number
 
     @Column({
         type: "enum",
@@ -41,6 +41,16 @@ export class Product {
         default: eCurrency.NGN
     })
     currency: string
+
+    @Column({
+        nullable: true,
+    })
+    bannerImage: string
+
+    @Column({
+        nullable: true,
+    })
+    detailImage: string
 
     @ManyToOne(() => User, (user) => user.products)
     owner: User

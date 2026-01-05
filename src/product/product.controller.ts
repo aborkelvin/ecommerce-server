@@ -1,25 +1,38 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import type { Request } from 'express';
+import { User } from 'src/user/entities/user.entity';
+import { Roles } from 'src/auth/guards/roles.decorator';
+import { eUserRole } from 'src/user/enums/userRole.enum';
 
-@Controller('product')
+@Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productService.create(createProductDto);
+  @Roles(eUserRole.ADMIN)
+  async create(
+    @Body() createProductDto: CreateProductDto,
+    @Req() req: Request
+  ) {
+    return await this.productService.create(createProductDto, req.user as User);
   }
 
   @Get()
-  findAll() {
-    return this.productService.findAll();
+  async findAll() {
+    return await this.productService.findAll();
+  }
+
+  @Get('/admin/mine')
+  async findMyProducts(@Req() req: Request) {
+    return await this.productService.findByOwner(req.user as User);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    return await this.productService.findOne(+id);
   }
 
   @Patch(':id')

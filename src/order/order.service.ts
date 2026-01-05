@@ -1,19 +1,205 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Order } from './entities/order.entity';
+import { QueryRunner, Repository } from 'typeorm';
+import { CartService } from 'src/cart/cart.service';
+import { User } from 'src/user/entities/user.entity';
+import { eOrderStatus } from './enums/orderStatus.enum';
+import { OrderItem } from 'src/order-item/entities/order-item.entity';
+import { OrderItemService } from 'src/order-item/order-item.service';
+import { Product } from 'src/product/entities/product.entity';
+import { eCartStatus } from 'src/cart/enums/cartStatus.enum';
+import { PaymentService } from 'src/payment/payment.service';
+import { Payment } from 'src/payment/entities/payment.entity';
+import { Cart } from 'src/cart/entities/cart.entity';
+import { TrackingDetail } from 'src/tracking-detail/entities/tracking-detail.entity';
+import { eTrackingStatus } from 'src/tracking-detail/enums/trackingStatus.enum';
 
 @Injectable()
 export class OrderService {
-  create(createOrderDto: CreateOrderDto) {
-    return 'This action adds a new order';
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+
+    private readonly cartService: CartService,
+    private readonly orderItemService: OrderItemService,
+  ){}
+
+  // Process for order and payment:
+  // When user clicks checkout, create order from cart with pending status and order items equal to cartitems.
+  // Initiate payment, if successful, update order status and also update the corresponding cart status.
+  
+  // async checkOutAndPay(createOrderDto: CreateOrderDto, user: User){
+  //   const { orderId, amount, } = await this.createOrder(createOrderDto, user)
+  //   const response = await this.paymentService.intializePaystack(
+  //     user.email,
+  //     amount,
+  //     orderId
+  //   )
+
+  //   return response;
+  // }
+
+  
+
+  async createOrder(createOrderDto: CreateOrderDto, user: User) {
+    // Find cart by id,
+    // Calculate totalPrice based on the currentPrice of the currentItems,
+    // Create the order,
+    // Loop through cartitems and create order items for each with the order already created
+
+    const queryRunner = this.orderRepository.manager.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try{
+      const { cart } = await this.cartService.findCartById(createOrderDto.cartId, user);
+
+      if (!cart.cartItems || cart.cartItems.length === 0) {
+        throw new BadRequestException('Your cart is empty');
+      }
+
+      const totalPrice = cart.cartItems.reduce((sum, item) => {
+        if (item.product.quantityInStock < item.quantity) {
+          throw new BadRequestException(
+            `Product "${item.product.name}" has only ${item.product.quantityInStock} left`
+          );
+        }
+        return sum + item.quantity * item.product.price;
+      }, 0);
+
+      const order = queryRunner.manager.create(Order, {
+        totalPrice,
+        user,
+        status: eOrderStatus.PENDING,
+        cart
+      });
+
+      const savedOrder = await queryRunner.manager.save(order);
+
+      const orderItemsData = cart.cartItems.map((item) => ({
+        quantity: item.quantity,
+        priceAtPurchase: item.product.price,
+        productNameAtPurchase: item.product.name,
+        product: item.product,
+        order: savedOrder,
+      }));
+      const orderItems = queryRunner.manager.create(OrderItem, orderItemsData);
+      await queryRunner.manager.save(orderItems);
+
+      cart.status = eCartStatus.PENDING_CHECKOUT;
+      await queryRunner.manager.save(cart);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        message: "Order created. Proceed to payment.",
+        orderId: savedOrder.id,
+        amount: savedOrder.totalPrice,
+      };
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+    
+    //Call this in another method that then uses it to initiate payment
   }
 
-  findAll() {
-    return `This action returns all order`;
+  async findAll(user: User) {
+    return await this.orderRepository.find({
+      where: {user: {id: user.id}}
+    })
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
+  async findOne(id: number, user: User) {
+    const order = await this.orderRepository.findOne({
+      where: { 
+        id,
+        user: { id: user.id }
+      },
+      relations: {
+        user: true
+      }
+    })
+    if(!order){
+      throw new NotFoundException('Order Not Found')
+    }
+    return order;
+  }
+
+  async handleSuccessfulPaymentUpdate(order: Order, payment: Payment, queryRunner: QueryRunner ) {
+
+    order.status = eOrderStatus.PAID;
+    await queryRunner.manager.save(order);
+
+    // handle other side-effects (update cart status, clear cart, create tracking)
+    // create tracking update and other side effects (call other services/repositories)
+    
+    if (!order.cart?.id) {
+      throw new Error(`Order ${order.id} has no cart attached`);
+    }
+    const updateResult = await queryRunner.manager.update(
+      Cart,
+      {
+        id:order.cart.id,
+        status: eCartStatus.PENDING_CHECKOUT,
+      },
+      { status: eCartStatus.CONVERTED_TO_ORDER }
+    )
+
+    if(updateResult.affected == 0){
+      throw new Error(`Cart ${order.cart.id} not in valid state for conversion`);
+    }
+
+
+    const orderItems = await queryRunner.manager.find(OrderItem, {
+      where: { order: { id: order.id } },
+      relations: ['product'],
+    });
+
+    if (!orderItems.length) {
+      throw new Error(`Order ${order.id} has no order items`);
+    }
+
+    // Reduce stock safely with row locks
+    for (const item of orderItems) {
+      const product = await queryRunner.manager.findOne(Product, {
+        where: { id: item.product.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!product) {
+        throw new Error(`Product ${item.product.id} not found`);
+      }
+
+      if (product.quantityInStock < item.quantity) {
+        throw new Error(
+          `Insufficient stock for ${product.name}. Available: ${product.quantityInStock}`
+        );
+      }
+
+      product.quantityInStock -= item.quantity;
+
+      await queryRunner.manager.save(product);
+    }
+
+
+    const trackingDetail = queryRunner.manager.create(
+      TrackingDetail,
+      {
+        status: eTrackingStatus.PROCESSING,
+        order,
+      }
+    )
+
+    await queryRunner.manager.save(trackingDetail)
+    return order;
   }
 
   update(id: number, updateOrderDto: UpdateOrderDto) {

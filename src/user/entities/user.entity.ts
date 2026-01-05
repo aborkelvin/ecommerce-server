@@ -4,6 +4,8 @@ import { Product } from "src/product/entities/product.entity";
 import { Cart } from "src/cart/entities/cart.entity";
 import { Order } from "src/order/entities/order.entity";
 import { Exclude } from "class-transformer";
+import { eUserProviderStrategy } from "../enums/userProviderStrategy";
+import { Upload } from "src/uploads/entities/upload.entity";
 
 @Entity()
 export class User{
@@ -23,7 +25,7 @@ export class User{
     email: string;
 
     @Column({
-        nullable: false
+        nullable: true
     })
     @Exclude()
     password: string;
@@ -35,6 +37,19 @@ export class User{
         nullable: false
     })
     role?: eUserRole
+
+    @Column({
+        nullable: true
+    })
+    providerId?: string;
+
+    @Column({
+        nullable: true,
+        type: "enum",
+        default: eUserProviderStrategy.LOCAL,
+        enum: eUserProviderStrategy
+    })
+    provider: string;
 
 
     //Relationships that depend on the user, necessarily defined because of queries and because of typescript
@@ -49,4 +64,7 @@ export class User{
     
     @OneToMany(() =>  Order, (order)=> order.user)
     orders?: Order[]
+
+    @OneToMany(() =>  Upload, (upload)=> upload.owner)
+    uploads?: Upload[]
 }

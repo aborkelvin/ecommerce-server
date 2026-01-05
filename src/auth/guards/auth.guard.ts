@@ -3,7 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import { Request } from "express";
-import { Observable } from "rxjs";
 import { IS_PUBLIC_KEY } from "./ispublic.deco";
 
 @Injectable()
@@ -28,7 +27,7 @@ export class AuthGuard implements CanActivate{
             throw new UnauthorizedException()
         }
         try{
-            const payload = this.jwtService.verifyAsync(token,{
+            const payload = await this.jwtService.verifyAsync(token,{
                 secret: this.configService.get('environment.jwtSecret')
             })
             request['user']=payload

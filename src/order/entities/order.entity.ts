@@ -1,10 +1,11 @@
 import { User } from "src/user/entities/user.entity";
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { CartItem } from "src/cart-item/entities/cart-item.entity";
 import { eOrderStatus } from "../enums/orderStatus.enum";
 import { OrderItem } from "src/order-item/entities/order-item.entity";
 import { Payment } from "src/payment/entities/payment.entity";
 import { TrackingDetail } from "src/tracking-detail/entities/tracking-detail.entity";
+import { Cart } from "src/cart/entities/cart.entity";
 
 @Entity()
 export class Order {
@@ -18,7 +19,7 @@ export class Order {
         precision: 10,
         scale: 2
     })
-    totalPrice: string
+    totalPrice: number
 
     @ManyToOne(() => User, (user) => user.orders)
     user: User
@@ -34,8 +35,15 @@ export class Order {
     })
     status: eOrderStatus;
 
+    @OneToOne(() => Cart, (cart) => cart.order, {
+        eager: true,
+    })
+    @JoinColumn() 
+    cart: Cart;
+
+
     @CreateDateColumn()
-    createDate: Date
+    createDate: Date;
 
     @UpdateDateColumn()
     updateDate: Date;

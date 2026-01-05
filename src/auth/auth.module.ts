@@ -5,10 +5,11 @@ import { Bcrypt } from './providers/bcrypt';
 import { UserModule } from 'src/user/user.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, Bcrypt],
+  providers: [AuthService, Bcrypt, GoogleStrategy],
   imports: [
     forwardRef(() => UserModule),
     JwtModule.registerAsync({

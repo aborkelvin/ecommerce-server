@@ -7,6 +7,7 @@ import { UserService } from 'src/user/user.service';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto } from '../dto/login.dto';
 import { Bcrypt } from './bcrypt';
+import { User } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -20,15 +21,7 @@ export class AuthService {
   async signUp(createUser: CreateUserDto) {
     const newUser = await this.userService.createNewUser(createUser)
     try{
-      const payload = {
-        sub: newUser.id,
-        ...newUser
-      }
-      const access_token = await this.jwtService.signAsync(payload,{
-        expiresIn: "7d",
-      })
-      // console.log(access_token)
-
+      const access_token = await this.generateToken(newUser)
       return {
         access_token,
         user: newUser
@@ -44,17 +37,27 @@ export class AuthService {
     if(!verifyPassword){
       throw new UnauthorizedException('Invalid credentials')
     }
-    const {password, ...userData} = user;
-    const payload = {
-      sub: user.id,
-      ...userData
-    }
-    const access_token = await this.jwtService.signAsync(payload)
+    const { password, ...userData } = user;
+    const access_token = await this.generateToken(user)
     return {
       access_token,
       user: userData
     }
   }
+
+  async generateToken(user: Partial<User>){
+    const {password, ...userData} = user;
+    const payload = {
+      sub: user.id,
+      ...userData
+    }
+    return await this.jwtService.signAsync(payload)
+  }
+  
+  async loginWithOAuth(user:User){
+    return await this.generateToken(user)
+  }
+  
 
   findAll() {
     return `This action returns all auth`;

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Unique, RelationId, UpdateDateColumn } from 'typeorm';
 import { ePaymentStatus } from '../enums/paymentStatus.enum';
 import { ePaymentMethod } from '../enums/paymentMethod.enum';
 import { Order } from 'src/order/entities/order.entity';
@@ -42,15 +42,22 @@ export class Payment {
     @CreateDateColumn()
     timestamp: Date; // When the payment record was created
 
+    @UpdateDateColumn()
+    updatedAt:Date;
 
     // A single order can have many payment attempts (e.g" initial failure, retry success)
-    @ManyToOne(() => Order, (order) => order.payments)
+    @ManyToOne(() => Order, (order) => order.payments, { onDelete: 'CASCADE' })
     order: Order;
+
+    
+    @RelationId((payment: Payment) => payment.order)
+    orderId: number;
 
     @Column({
         nullable: false,
         type: "enum",
         enum: eCurrency,
+        default: eCurrency.NGN
     })
     currency: eCurrency;
 

@@ -41,18 +41,47 @@ export class UserService {
   }
 
   async findOne(email: string) {
-    let user: User | null;
-    try{
-      user = await this.userRepository.findOneBy({
+    let user = await this.userRepository.findOneBy({
         email
       })
-    }catch(err){
-      throw new ConflictException(err)
-    }
     if(!user){
       throw new NotFoundException('This user doesnt exist')
     }
     return user
+  }
+
+  async findOneOrNull(email: string): Promise<User | null> {
+    return this.userRepository.findOneBy({ email });
+  }
+
+  async findByProviderId(providerId: string){
+    let user: User | null
+    try{
+      user = await this.userRepository.findOneBy({
+        providerId
+      })
+    }catch(err){
+      throw new ConflictException(err)
+    }
+    return user;
+  }
+
+  async createOAuthUser(userData:Partial<User>){
+    let newUser:User;
+    try{
+      // const user = this.userRepository.create(userData)
+      newUser = await this.userRepository.save(userData)
+    }catch(err){
+      if (err.code === '23505' ) {
+        throw new ConflictException('Email already exists');
+      }
+      if (err.code === '23502') {
+        throw new BadRequestException(`Missing required field: ${err.column}`);
+      }
+      throw new RequestTimeoutException(err)
+    }
+
+    return newUser;
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {

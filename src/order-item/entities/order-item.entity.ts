@@ -22,6 +22,11 @@ export class OrderItem {
     })
     priceAtPurchase: number
 
+    @Column({
+        nullable: false,
+    })
+    productNameAtPurchase: string
+
     @ManyToOne(() => Order, (order) => order.orderItems)
     order: Order;
 

@@ -1,21 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { CartItemService } from './cart-item.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import type { Request } from 'express';
+import { User } from 'src/user/entities/user.entity';
 
-@Controller('cart-item')
+@Controller('cart-items')
 export class CartItemController {
   constructor(private readonly cartItemService: CartItemService) {}
 
   @Post()
-  create(@Body() createCartItemDto: CreateCartItemDto) {
-    return this.cartItemService.create(createCartItemDto);
+  async addItemToCart(
+    @Body() createCartItemDto: CreateCartItemDto,
+    @Req() req: Request
+  ) {
+    return await this.cartItemService.addItemToCart(createCartItemDto, req.user as User);
   }
 
-  @Get()
-  findAll() {
-    return this.cartItemService.findAll();
-  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -23,12 +24,19 @@ export class CartItemController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCartItemDto: UpdateCartItemDto) {
-    return this.cartItemService.update(+id, updateCartItemDto);
+  update(
+    @Param('id') id: string, 
+    @Body() updateCartItemDto: UpdateCartItemDto,
+    @Req() req: Request
+  ) {
+    return this.cartItemService.update(+id, updateCartItemDto, req.user as User);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cartItemService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @Req() req: Request
+  ) {
+    return await this.cartItemService.removeItemFromCart(+id, req.user as User);
   }
 }

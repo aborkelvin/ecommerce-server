@@ -17,10 +17,10 @@ export class CartItem {
     })
     quantity: number
 
-    @Column({
-        nullable: false,
-    })
-    unitPrice: number
+    // @Column(
+    //     nullable: false,
+    // })
+    // unitPrice: number
 
     @ManyToOne(() => Cart, (cart) => cart.cartItems)
     cart: Cart;
