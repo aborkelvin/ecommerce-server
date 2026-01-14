@@ -4,6 +4,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import type { Request } from 'express';
 import { User } from 'src/user/entities/user.entity';
+import { Public } from 'src/auth/guards/ispublic.deco';
 
 @Controller('orders')
 export class OrderController {
@@ -21,21 +22,36 @@ export class OrderController {
  
 
   @Get()
-  findAll(
+  findAllOrdersByAUser(
     @Req() req: Request
   ) {
-    return this.orderService.findAll( req.user as User);
+    return this.orderService.findAllOrdersByAUser( req.user as User);
+  }
+
+  @Get('admin/all')
+  findAllOrdersForAdmin(
+    @Req() req: Request
+  ) {
+    return this.orderService.findAllOrdersForAdmin();
   }
 
   @Get(':id')
-  findOne(
+  findOneOrderByAUser(
     @Param('id') id: string,  
     @Req() req: Request
   ) {
-    return this.orderService.findOne(+id, req.user as User);
+    return this.orderService.findOneOrderByAUser(+id, req.user as User);
   }
 
-  @Patch(':id')
+  @Get('admin/:id')
+  findOneOrderForAdmin(
+    @Param('id') id: string,
+  ) {
+    return this.orderService.findOneOrderByIdForAdmin(+id);
+  }
+
+  // @IsAdmin()
+  @Patch('/admin/:id')
   update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
     return this.orderService.update(+id, updateOrderDto);
   }

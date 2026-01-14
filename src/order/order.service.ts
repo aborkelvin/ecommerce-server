@@ -27,21 +27,6 @@ export class OrderService {
     private readonly orderItemService: OrderItemService,
   ){}
 
-  // Process for order and payment:
-  // When user clicks checkout, create order from cart with pending status and order items equal to cartitems.
-  // Initiate payment, if successful, update order status and also update the corresponding cart status.
-  
-  // async checkOutAndPay(createOrderDto: CreateOrderDto, user: User){
-  //   const { orderId, amount, } = await this.createOrder(createOrderDto, user)
-  //   const response = await this.paymentService.intializePaystack(
-  //     user.email,
-  //     amount,
-  //     orderId
-  //   )
-
-  //   return response;
-  // }
-
   
 
   async createOrder(createOrderDto: CreateOrderDto, user: User, idempotencyKey: string) {
@@ -122,7 +107,7 @@ export class OrderService {
         
   }
 
-  async findAll(user: User) {
+  async findAllOrdersByAUser(user: User) {
     return await this.orderRepository.find({
       where: {
         user: {id: user.id},
@@ -131,7 +116,15 @@ export class OrderService {
     })
   }
 
-  async findOne(id: number, user: User) {
+  async findAllOrdersForAdmin(){
+    return await this.orderRepository.find({
+      where:{
+        status: Not(In([eOrderStatus.ABANDONED, eOrderStatus.PENDING]))
+      }
+    })
+  }
+
+  async findOneOrderByAUser(id: number, user: User) {
     const order = await this.orderRepository.findOne({
       where: { 
         id,
@@ -141,6 +134,14 @@ export class OrderService {
         user: true
       }
     })
+    if(!order){
+      throw new NotFoundException('Order Not Found')
+    }
+    return order;
+  }
+
+  async findOneOrderByIdForAdmin(id: number) {
+    const order = await this.orderRepository.findOneBy({id});
     if(!order){
       throw new NotFoundException('Order Not Found')
     }
@@ -226,8 +227,13 @@ export class OrderService {
     return order;
   }
 
-  update(id: number, updateOrderDto: UpdateOrderDto) {
-    return `This action updates a #${id} order`;
+
+  async update(id: number, updateOrderDto: UpdateOrderDto) {
+    const result = await this.orderRepository.update(id, updateOrderDto);
+    if(result.affected === 0){
+      throw new NotFoundException('Order Not Found')
+    }
+    return await this.orderRepository.findOneBy({id});
   }
 
   remove(id: number) {
