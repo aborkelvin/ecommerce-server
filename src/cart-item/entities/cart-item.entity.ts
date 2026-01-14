@@ -25,6 +25,8 @@ export class CartItem {
     @ManyToOne(() => Cart, (cart) => cart.cartItems)
     cart: Cart;
 
-    @ManyToOne(() => Product, (product) => product.cartItems)
+    @ManyToOne(() => Product, (product) => product.cartItems,{
+        eager: true,
+    })
     product: Product;
 }

@@ -26,11 +26,16 @@ export class Cart {
     })
     status: eCartStatus;
 
-    @OneToOne(() => Order, (order) => order.cart, {
+    @OneToMany(() => Order, (order) => order.cart, {
     nullable: true,
     })
-    order?: Order;
+    orders?: Order[];
 
+    @Column({
+        type: "int",
+        default: 0
+    })
+    cartVersion: number;
 
     @CreateDateColumn()
     createDate: Date

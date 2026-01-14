@@ -22,6 +22,7 @@ export class CartItemService {
   ){}
   private readonly logger = new Logger(CartItemService.name)
 
+  
   async addItemToCart(createCartItemDto: CreateCartItemDto, user: User){
     
     //Check if product exists,(product's service throws an error if it doesnt)
@@ -47,13 +48,17 @@ export class CartItemService {
       })
     }
 
-    const savedItem = await this.cartItemRepository.save(cartItem)
+    await this.cartItemRepository.save(cartItem)
 
     // return {
     //   message: "Item added to cart successfully!",
     //   data: savedItem
     // }
-    return await this.cartService.findActiveCart(user)
+    const activeCart = await this.cartService.findActiveCart(user)
+    if(!activeCart){
+      throw new NotFoundException("No active cart found")
+    }
+    return await this.cartService.incrementCartVersion(activeCart)
   }
 
   async checkCartItemInCart(cart: Cart, product: Product){
@@ -104,11 +109,11 @@ export class CartItemService {
     }
 
     await this.cartItemRepository.remove(cartItem)
-    
-    // return {
-    //   message: "Item removed from cart"
-    // }
-    return await this.cartService.findActiveCart(user)
+    const activeCart = await this.cartService.findActiveCart(user)
+    if(!activeCart){
+      throw new NotFoundException("No active cart found")
+    }
+    return await this.cartService.incrementCartVersion(activeCart)
   }
 
   findOne(id: number) {
@@ -141,12 +146,12 @@ export class CartItemService {
 
     cartItem.quantity = quantity;
     await this.cartItemRepository.save(cartItem)
-    return await this.cartService.findActiveCart(user)
-
+    const activeCart = await this.cartService.findActiveCart(user)
+    if(!activeCart){
+      throw new NotFoundException("No active cart found")
+    }
+    return await this.cartService.incrementCartVersion(activeCart)
   }
 
-  // async remove(id: number, user: User) {
-  //   await this.cartItemRepository.delete(id);
-  //   return await this.cartService.findActiveCart(user)
-  // }
+
 }

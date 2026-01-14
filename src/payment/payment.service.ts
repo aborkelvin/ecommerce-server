@@ -62,7 +62,8 @@ export class PaymentService {
       metadata: {
         custom_order_id: payment.order.id,
         payment_id: payment.id,
-      }
+      },
+      callback_url: `${this.configService.get('environment.frontendBaseUrl')}/payment/callback`,
     };
     const response$ = this.httpService.post('https://api.paystack.co/transaction/initialize', body, { headers });
     const response = await firstValueFrom(response$);
@@ -104,13 +105,11 @@ export class PaymentService {
     try{
       let payment = await queryRunner.manager.findOne(Payment, {
         where: { transactionId: gatewayRef }, 
-        // relations: ['order'],
         lock: { mode : "pessimistic_write" }
       });
       if (!payment && res.data.metadata?.payment_id) {
         payment = await queryRunner.manager.findOne(Payment,{ 
           where: { id: Number(res.data.metadata.payment_id) }, 
-          // relations: ['order'],
           lock: { mode : "pessimistic_write" }
         });
       }

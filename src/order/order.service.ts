@@ -3,7 +3,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
-import { QueryRunner, Repository } from 'typeorm';
+import { In, Not, QueryRunner, Repository } from 'typeorm';
 import { CartService } from 'src/cart/cart.service';
 import { User } from 'src/user/entities/user.entity';
 import { eOrderStatus } from './enums/orderStatus.enum';
@@ -44,12 +44,23 @@ export class OrderService {
 
   
 
-  async createOrder(createOrderDto: CreateOrderDto, user: User) {
+  async createOrder(createOrderDto: CreateOrderDto, user: User, idempotencyKey: string) {
+    // Check if order with same idempotency key exists for the user and return it if yes
     // Find cart by id,
     // Calculate totalPrice based on the currentPrice of the currentItems,
     // Create the order,
     // Loop through cartitems and create order items for each with the order already created
 
+    const existingOrder = await this.orderRepository.findOne({
+      where: { idempotencyKey }
+    })
+    if(existingOrder){
+      return {
+        message: "Order already exists",
+        orderId: existingOrder.id,
+        amount: existingOrder.totalPrice,
+      }
+    }
     const queryRunner = this.orderRepository.manager.connection.createQueryRunner();
 
     await queryRunner.connect();
@@ -75,7 +86,8 @@ export class OrderService {
         totalPrice,
         user,
         status: eOrderStatus.PENDING,
-        cart
+        cart,
+        cartVersionSnapshot: cart.cartVersion,
       });
 
       const savedOrder = await queryRunner.manager.save(order);
@@ -90,8 +102,8 @@ export class OrderService {
       const orderItems = queryRunner.manager.create(OrderItem, orderItemsData);
       await queryRunner.manager.save(orderItems);
 
-      cart.status = eCartStatus.PENDING_CHECKOUT;
-      await queryRunner.manager.save(cart);
+      // cart.status = eCartStatus.PENDING_CHECKOUT;
+      // await queryRunner.manager.save(cart);
 
       await queryRunner.commitTransaction();
 
@@ -107,13 +119,15 @@ export class OrderService {
     } finally {
       await queryRunner.release();
     }
-    
-    //Call this in another method that then uses it to initiate payment
+        
   }
 
   async findAll(user: User) {
     return await this.orderRepository.find({
-      where: {user: {id: user.id}}
+      where: {
+        user: {id: user.id},
+        status: Not(In([eOrderStatus.ABANDONED, eOrderStatus.PENDING]))
+      }
     })
   }
 
@@ -137,6 +151,16 @@ export class OrderService {
 
     order.status = eOrderStatus.PAID;
     await queryRunner.manager.save(order);
+    
+    await queryRunner.manager.update(
+      Order,
+      { 
+        cart: { id: order.cart.id},
+        status: eOrderStatus.PENDING,
+        id: Not(order.id)
+      },
+      { status: eOrderStatus.ABANDONED}
+    )
 
     // handle other side-effects (update cart status, clear cart, create tracking)
     // create tracking update and other side effects (call other services/repositories)
@@ -148,7 +172,7 @@ export class OrderService {
       Cart,
       {
         id:order.cart.id,
-        status: eCartStatus.PENDING_CHECKOUT,
+        status: eCartStatus.ACTIVE,
       },
       { status: eCartStatus.CONVERTED_TO_ORDER }
     )

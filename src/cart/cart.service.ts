@@ -14,6 +14,11 @@ export class CartService {
     private readonly cartRepository: Repository<Cart>,
   ){}
 
+  async incrementCartVersion(cart: Cart){
+    cart.cartVersion+=1;
+    return await this.cartRepository.save(cart);
+  }
+
   async findOrCreateActiveCart(user: User){
     let cart = await this.cartRepository.findOne({
       where: {

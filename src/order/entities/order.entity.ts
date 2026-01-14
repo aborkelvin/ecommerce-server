@@ -21,7 +21,9 @@ export class Order {
     })
     totalPrice: number
 
-    @ManyToOne(() => User, (user) => user.orders)
+    @ManyToOne(() => User, (user) => user.orders,{
+        eager: true,
+    })
     user: User
 
     @OneToMany(() => OrderItem, (orderItem) => orderItem.order)
@@ -35,12 +37,22 @@ export class Order {
     })
     status: eOrderStatus;
 
-    @OneToOne(() => Cart, (cart) => cart.order, {
+    @ManyToOne(() => Cart, (cart) => cart.orders, {
         eager: true,
     })
     @JoinColumn() 
     cart: Cart;
 
+    @Column({
+        unique: true,
+        nullable: true,
+    })
+    idempotencyKey: string;
+
+    @Column({
+        nullable: true
+    })
+    cartVersionSnapshot: number;
 
     @CreateDateColumn()
     createDate: Date;

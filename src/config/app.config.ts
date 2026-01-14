@@ -5,7 +5,8 @@ export const appConfig = () => ({
         apiVersion: process.env.API_VERSION,
         jwtSecret: process.env.JWT_SECRET,
         jwtExpiry: process.env.JWT_EXPIRY,
-        paystackSecretKey: process.env.PAYSTACK_SECRET_KEY
+        paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
+        frontendBaseUrl: process.env.FRONTEND_URL
     }
 });
 

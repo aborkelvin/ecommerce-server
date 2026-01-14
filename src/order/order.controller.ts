@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Headers } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -12,9 +12,10 @@ export class OrderController {
   @Post('/create')
   async createOrder(
     @Body() createOrderDto: CreateOrderDto,
-    @Req() req: Request
+    @Req() req: Request,
+    @Headers('x-idempotency-Key') idempotencyKey: string,
   ) {
-    return await this.orderService.createOrder(createOrderDto, req.user as User);
+    return await this.orderService.createOrder(createOrderDto, req.user as User, idempotencyKey);
   }
 
  
@@ -24,6 +25,14 @@ export class OrderController {
     @Req() req: Request
   ) {
     return this.orderService.findAll( req.user as User);
+  }
+
+  @Get(':id')
+  findOne(
+    @Param('id') id: string,  
+    @Req() req: Request
+  ) {
+    return this.orderService.findOne(+id, req.user as User);
   }
 
   @Patch(':id')

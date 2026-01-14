@@ -1,6 +1,6 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import * as express from "express"
 import { join } from 'path';
 
@@ -10,6 +10,9 @@ async function bootstrap() {
     whitelist: true,
     transform: true
   }))
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector))
+  )
   app.enableCors()
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads' )))
   await app.listen(process.env.PORT ?? 3000);

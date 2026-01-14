@@ -20,7 +20,7 @@ export class ProductController {
     return await this.productService.create(createProductDto, req.user as User);
   }
 
-  @Get()
+  @Get()  
   async findAll() {
     return await this.productService.findAll();
   }

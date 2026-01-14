@@ -16,7 +16,7 @@ export class CheckoutService {
     async makePayment(orderId: number, user: User){
         const order = await this.orderService.findOne(orderId, user)
         if(order.status !== eOrderStatus.PENDING ){ // If pay on delivery happens, this logic changes
-            throw new BadRequestException('Order already paid')
+            throw new BadRequestException('Order already paid or abandoned')
         }
 
 
