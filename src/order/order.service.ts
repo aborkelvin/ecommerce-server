@@ -104,7 +104,6 @@ export class OrderService {
     } finally {
       await queryRunner.release();
     }
-        
   }
 
   async findAllOrdersByAUser(user: User) {

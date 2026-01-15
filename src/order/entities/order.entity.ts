@@ -26,7 +26,9 @@ export class Order {
     })
     user: User
 
-    @OneToMany(() => OrderItem, (orderItem) => orderItem.order)
+    @OneToMany(() => OrderItem, (orderItem) => orderItem.order,{
+        eager: true,
+    })
     orderItems?: OrderItem[]
     
     @Column({
