@@ -101,8 +101,18 @@ export class ProductService {
     }
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(id: number, updateProductDto: UpdateProductDto) {
+
+    const result = await this.productRepository.update(id, updateProductDto);
+    if(result.affected == 0){
+      throw new NotFoundException('Product Not Found')
+    }
+    const updatedProduct = await this.productRepository.findOneBy({id});
+
+    return {
+      message: `Product #${id} updated successfully!`,
+      data: updatedProduct
+    }
   }
 
   remove(id: number) {
